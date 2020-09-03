@@ -22,7 +22,7 @@ const (
 	CMD_Pong  = 2 // only sent by server
 	CMD_Err   = 3 // error occurred, message follows
 	CMD_End   = 4 // close connection normally
-	BLOCKSIZE = 1024
+	BLOCKSIZE = 4096
 )
 
 var headerSize int

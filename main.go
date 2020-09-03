@@ -29,7 +29,6 @@ func main() {
 				continue
 			}
 			go service(c)
-			log.Infof("Closed connection")
 		}
 	}
 

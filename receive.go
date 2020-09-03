@@ -26,16 +26,28 @@ type received struct {
 	bps   int64 // bytes per second
 }
 
+func readex(c net.Conn, size int) ([]byte, error) {
+	buf := make([]byte, size)
+	got, rErr := c.Read(buf)
+	if rErr != nil {
+		return nil, rErr
+	}
+	if got < size {
+		extra, xErr := readex(c, size-got)
+		if xErr != nil {
+			return nil, xErr
+		}
+		buf = append(buf[:got], extra...)
+	}
+	return buf, nil
+}
+
 func receive(c net.Conn, r *received) error {
 	c.SetDeadline(time.Now().Add(10 * time.Second))
 
-	hbuf := make([]byte, headerSize)
-	hsize, rErr := c.Read(hbuf)
+	hbuf, rErr := readex(c, headerSize) //c.Read(hbuf)
 	if rErr != nil {
 		return logSendErr(c, fmt.Errorf("read header: %w", rErr))
-	}
-	if hsize != headerSize {
-		return logSendErr(c, errors.New("did not receive full header"))
 	}
 	hrErr := binary.Read(bytes.NewReader(hbuf), binary.BigEndian, &r.hdr)
 	if hrErr != nil {
@@ -47,17 +59,13 @@ func receive(c net.Conn, r *received) error {
 	if int(r.hdr.Size) < headerSize || int(r.hdr.Size) > BLOCKSIZE {
 		return logSendErr(c, errors.New("received message with invalid header size"))
 	}
-	log.Infof("Received %+v", r.hdr)
+	// log.Infof("Received %+v", r.hdr)
 
 	dsize := int(r.hdr.Size) - headerSize
 	if dsize > 0 {
-		dbuf := make([]byte, dsize)
-		dread, dErr := c.Read(dbuf)
+		dbuf, dErr := readex(c, dsize)
 		if dErr != nil {
 			return logSendErr(c, fmt.Errorf("read data: %w", dErr))
-		}
-		if dread != dsize {
-			return logSendErr(c, errors.New("received message with short data"))
 		}
 		if r.hdr.Crc != crc16(dbuf) {
 			return logSendErr(c, errors.New("received wrong data crc"))
@@ -76,7 +84,6 @@ func receive(c net.Conn, r *received) error {
 		if r.elms > 0 {
 			r.bps = 1000 * r.total / r.elms
 		}
-		log.Infof("total=%v elms=%v bps=%v", r.total, r.elms, r.bps)
 	}
 	return nil
 }

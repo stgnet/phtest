@@ -20,4 +20,5 @@ func service(c net.Conn) {
 		}
 
 	}
+	log.Infof("total=%v elms=%v bps=%v", r.total, r.elms, r.bps)
 }
