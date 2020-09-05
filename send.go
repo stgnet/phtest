@@ -5,11 +5,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"net"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
 func send(c net.Conn, h header, d []byte) error {
+	c.SetWriteDeadline(time.Now().Add(10 * time.Second))
 	h.Magic = MAGIC
 	h.Size = uint16(headerSize + len(d))
 	h.Crc = crc16(d)

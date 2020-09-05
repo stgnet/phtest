@@ -20,30 +20,59 @@ func logSendErr(c net.Conn, err error) error {
 type received struct {
 	hdr   header
 	data  []byte
-	total int64
 	start time.Time
-	elms  int64 // elapsed milliseconds
-	bps   int64 // bytes per second
+	total uint64
+	elms  uint64 // elapsed milliseconds
+	bps   uint64 // bytes per second
+	secs  int    // elapsed seconds
+	last  int    // last elapsed seconds (tick trigger)
+}
+
+// bytes per second
+func bps(total uint64, elms uint64) uint64 {
+	if elms == 0 {
+		return 0
+	}
+	return 1000 * total / elms
+}
+
+// mega-bits-per-second
+func mbps(bps uint64) string {
+	return fmt.Sprintf("%.2f", (float64)(bps)*0.000008)
 }
 
 func readex(c net.Conn, size int) ([]byte, error) {
 	buf := make([]byte, size)
-	got, rErr := c.Read(buf)
+	have, rErr := c.Read(buf)
 	if rErr != nil {
 		return nil, rErr
 	}
-	if got < size {
-		extra, xErr := readex(c, size-got)
-		if xErr != nil {
-			return nil, xErr
+	for have < size {
+		need := size - have
+		extra := make([]byte, need)
+		add, aErr := c.Read(extra)
+		if aErr != nil {
+			return nil, aErr
 		}
-		buf = append(buf[:got], extra...)
+		buf = append(buf[:have], extra[:add]...)
+		have += add
 	}
+
+	/*
+		prior recursive version for reference:
+		if have < size {
+			extra, xErr := readex(c, size-have)
+			if xErr != nil {
+				return nil, xErr
+			}
+			buf = append(buf[:got], extra...)
+		}
+	*/
 	return buf, nil
 }
 
 func receive(c net.Conn, r *received) error {
-	c.SetDeadline(time.Now().Add(10 * time.Second))
+	c.SetReadDeadline(time.Now().Add(10 * time.Second))
 
 	hbuf, rErr := readex(c, headerSize) //c.Read(hbuf)
 	if rErr != nil {
@@ -78,11 +107,28 @@ func receive(c net.Conn, r *received) error {
 		// reset values -- first packet doesn't count
 		r.total = 0
 		r.start = time.Now()
+		r.last = 0
+		r.secs = 0
+		r.bps = 0
 	} else {
-		r.total += int64(r.hdr.Size)
-		r.elms = time.Now().Sub(r.start).Milliseconds()
-		if r.elms > 0 {
-			r.bps = 1000 * r.total / r.elms
+		r.last = r.secs
+		r.secs = int(time.Now().Sub(r.start).Seconds())
+
+		r.total += uint64(r.hdr.Size)
+		r.elms = uint64(time.Now().Sub(r.start).Milliseconds())
+		r.bps = bps(r.total, r.elms)
+
+		if r.hdr.Command == CMD_Ping {
+			hdr := header{
+				Command: CMD_Pong,
+				Total:   r.total,
+				Elapsed: r.elms,
+			}
+			sErr := send(c, hdr, []byte{})
+			if sErr != nil {
+				return fmt.Errorf("Send pong: %w", sErr)
+			}
+			// log.Infof("total=%v elms=%v bps=%v", r.total, r.elms, r.bps)
 		}
 	}
 	return nil

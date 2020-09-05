@@ -4,7 +4,6 @@ import (
 	"flag"
 	"net"
 	"strconv"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -36,17 +35,5 @@ func main() {
 	if dErr != nil {
 		panic(dErr)
 	}
-
-	c.SetDeadline(time.Now().Add(10 * time.Second))
-	count := 0
-	for count < 100000 {
-		hdr := header{
-			Count: uint32(count),
-		}
-		count += 1
-		sErr := send(c, hdr, randbytes(BLOCKSIZE-headerSize))
-		if sErr != nil {
-			panic(sErr)
-		}
-	}
+	service(c)
 }
