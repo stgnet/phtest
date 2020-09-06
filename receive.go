@@ -117,19 +117,6 @@ func receive(c net.Conn, r *received) error {
 		r.total += uint64(r.hdr.Size)
 		r.elms = uint64(time.Now().Sub(r.start).Milliseconds())
 		r.bps = bps(r.total, r.elms)
-
-		if r.hdr.Command == CMD_Ping {
-			hdr := header{
-				Command: CMD_Pong,
-				Total:   r.total,
-				Elapsed: r.elms,
-			}
-			sErr := send(c, hdr, []byte{})
-			if sErr != nil {
-				return fmt.Errorf("Send pong: %w", sErr)
-			}
-			// log.Infof("total=%v elms=%v bps=%v", r.total, r.elms, r.bps)
-		}
 	}
 	return nil
 }
