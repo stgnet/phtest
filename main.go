@@ -2,10 +2,9 @@ package main
 
 import (
 	"flag"
+	"log"
 	"net"
 	"strconv"
-
-	log "github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -24,7 +23,7 @@ func main() {
 		for {
 			c, cErr := l.Accept()
 			if cErr != nil {
-				log.Error(cErr)
+				log.Println(cErr)
 				continue
 			}
 			go service(c)

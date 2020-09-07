@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"log"
 	"net"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 func send(c net.Conn, h header, d []byte) error {
@@ -41,6 +40,6 @@ func sendErr(c net.Conn, err error) {
 	sErr := send(c, header{Command: CMD_Err}, []byte(err.Error()))
 	if sErr != nil {
 		// connection will next close, so just log it
-		log.Error(sErr)
+		log.Println(sErr)
 	}
 }

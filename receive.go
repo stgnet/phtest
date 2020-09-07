@@ -5,14 +5,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 func logSendErr(c net.Conn, err error) error {
-	log.Error(err)
+	log.Println(err)
 	sendErr(c, err)
 	return err
 }
