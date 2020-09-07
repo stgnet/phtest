@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"log"
 	"net"
 	"time"
 )
@@ -36,10 +35,8 @@ func send(c net.Conn, h header, d []byte) error {
 	return nil
 }
 
-func sendErr(c net.Conn, err error) {
-	sErr := send(c, header{Command: CMD_Err}, []byte(err.Error()))
-	if sErr != nil {
-		// connection will next close, so just log it
-		log.Println(sErr)
-	}
+func sendErr(c net.Conn, err error) error {
+	send(c, header{Command: CMD_Err}, []byte(err.Error()))
+	// connection will be closed next anyway, so ignore any error sending
+	return err
 }

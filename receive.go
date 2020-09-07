@@ -5,16 +5,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"time"
 )
-
-func logSendErr(c net.Conn, err error) error {
-	log.Println(err)
-	sendErr(c, err)
-	return err
-}
 
 type stat struct {
 	total uint64
@@ -79,27 +72,27 @@ func receive(c net.Conn, r *received) error {
 
 	hbuf, rErr := readex(c, headerSize) //c.Read(hbuf)
 	if rErr != nil {
-		return logSendErr(c, fmt.Errorf("read header: %w", rErr))
+		return sendErr(c, fmt.Errorf("read header: %w", rErr))
 	}
 	hrErr := binary.Read(bytes.NewReader(hbuf), binary.BigEndian, &r.hdr)
 	if hrErr != nil {
-		return logSendErr(c, fmt.Errorf("convert header: %w: buf=%+v", hrErr, hbuf))
+		return sendErr(c, fmt.Errorf("convert header: %w: buf=%+v", hrErr, hbuf))
 	}
 	if r.hdr.Magic != MAGIC {
-		return logSendErr(c, errors.New("received message with wrong magic code"))
+		return sendErr(c, errors.New("received message with wrong magic code"))
 	}
 	if int(r.hdr.Size) < headerSize || int(r.hdr.Size) > BLOCKSIZE {
-		return logSendErr(c, errors.New("received message with invalid header size"))
+		return sendErr(c, errors.New("received message with invalid header size"))
 	}
 
 	dsize := int(r.hdr.Size) - headerSize
 	if dsize > 0 {
 		dbuf, dErr := readex(c, dsize)
 		if dErr != nil {
-			return logSendErr(c, fmt.Errorf("read data: %w", dErr))
+			return sendErr(c, fmt.Errorf("read data: %w", dErr))
 		}
 		if r.hdr.Crc != crc16(dbuf) {
-			return logSendErr(c, errors.New("received wrong data crc"))
+			return sendErr(c, errors.New("received wrong data crc"))
 		}
 		r.data = dbuf
 	}
@@ -112,8 +105,6 @@ func receive(c net.Conn, r *received) error {
 		r.recv.elms = 0
 		r.recv.bps = 0
 	} else {
-		r.secs = int(time.Now().Sub(r.start).Seconds())
-
 		r.recv.elms = uint64(time.Now().Sub(r.start).Milliseconds())
 		r.recv.total += uint64(r.hdr.Size)
 		r.recv.bps = bps(r.recv.total, r.recv.elms)
@@ -121,6 +112,13 @@ func receive(c net.Conn, r *received) error {
 		r.send.elms = r.hdr.Elapsed
 		r.send.total = r.hdr.Total
 		r.send.bps = bps(r.send.total, r.send.elms)
+
+		// use shortest elapsed time, as first message in either direction may have been delayed
+		if r.send.elms < r.recv.elms {
+			r.secs = int(r.send.elms / 1000)
+		} else {
+			r.secs = int(r.recv.elms / 1000)
+		}
 	}
 	return nil
 }

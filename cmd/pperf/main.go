@@ -24,6 +24,10 @@ func main() {
 		Seconds:   *seconds,
 		Interface: *ifname,
 	})
+	if results.Err != nil {
+		fmt.Println(results.Err.Error())
+		return
+	}
 
 	pretty, err := json.MarshalIndent(results, "", "    ")
 	if err != nil {

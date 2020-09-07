@@ -1,16 +1,18 @@
 package pperf
 
 import (
-	"log"
+	"fmt"
 	"net"
 	"strconv"
+	"syscall"
+	"time"
 )
 
 type API struct {
 	Server    bool
-	Target    string // ip address of server
+	Target    string // ip address of server to test against
 	Port      int
-	Seconds   int    // seconds to run test
+	Seconds   int    // number of seconds to run test
 	Interface string // interface name to bind to (linux only)
 }
 
@@ -38,16 +40,34 @@ func Pperf(api API) Results {
 		for {
 			c, cErr := l.Accept()
 			if cErr != nil {
-				log.Println(cErr)
+				fmt.Println(cErr)
 				continue
 			}
-			go tester(c)
+			go tester(c, 0)
 		}
 	}
 
-	c, dErr := net.Dial("tcp", api.Target+":"+strconv.Itoa(api.Port))
+	dialer := &net.Dialer{
+		Timeout:   5 * time.Second,
+		DualStack: true,
+	}
+	if api.Interface != "" {
+		dialer.Control = func(network, address string, c syscall.RawConn) (err error) {
+			err1 := c.Control(func(fd uintptr) {
+				err = bindInterface(int(fd), api.Interface)
+				if err != nil {
+					return
+				}
+			})
+			if err != nil {
+				return err
+			}
+			return err1
+		}
+	}
+	c, dErr := dialer.Dial("tcp", api.Target+":"+strconv.Itoa(api.Port))
 	if dErr != nil {
 		return Results{Err: dErr}
 	}
-	return tester(c)
+	return tester(c, api.Seconds)
 }

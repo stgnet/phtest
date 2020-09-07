@@ -2,36 +2,35 @@ package pperf
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"time"
 )
 
-func tester(c net.Conn) Results {
+func tester(c net.Conn, duration int) Results {
 	defer c.Close()
 	c.SetDeadline(time.Now().Add(10 * time.Second))
+
+	// server is given 0 for duration, but force an upper limit to test duration
+	if duration == 0 {
+		// if server closes connection first, client will receive error
+		duration = 60
+	}
 
 	var r received
 	remoteAddress := ""
 	quit := make(chan bool)
 	go sender(quit, c, &r)
-	for r.secs < 5 {
+	for r.secs < duration {
 		rErr := receive(c, &r)
 		if rErr != nil {
-			log.Printf("Closing on receive error %v", rErr)
 			return Results{Err: rErr}
 		}
-		switch r.hdr.Command {
-		case CMD_Test:
-			// nothing to do
-		case CMD_IP:
+
+		if r.hdr.Command == CMD_IP {
 			remoteAddress = string(r.data)
-		case CMD_Err:
-			return Results{Err: fmt.Errorf("Server: %s", string(r.data))}
-		case CMD_End:
-			log.Printf("Received end")
-		default:
-			return Results{Err: fmt.Errorf("Unknown command: %v", r.hdr.Command)}
+		}
+		if r.hdr.Command == CMD_Err {
+			return Results{Err: fmt.Errorf("Remote error: %s", string(r.data))}
 		}
 		if r.hdr.Command == CMD_End || r.hdr.Command == CMD_Err {
 			break
