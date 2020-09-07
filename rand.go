@@ -1,4 +1,4 @@
-package main
+package pperf
 
 import (
 	"math/rand"

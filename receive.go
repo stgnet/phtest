@@ -1,4 +1,4 @@
-package main
+package pperf
 
 import (
 	"bytes"
@@ -36,8 +36,8 @@ func bps(total uint64, elms uint64) uint64 {
 }
 
 // mega-bits-per-second
-func mbps(bps uint64) string {
-	return fmt.Sprintf("%.2f", (float64)(bps)*0.000008)
+func mbps(bps uint64) float64 {
+	return float64(bps) * 0.000008
 }
 
 func readex(c net.Conn, size int) ([]byte, error) {
