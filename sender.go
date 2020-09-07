@@ -6,7 +6,8 @@ import (
 
 func sender(quit chan bool, c net.Conn, r *received) error {
 	// for first sync (count=0) packet, send along the IP address
-	iErr := send(c, header{Command: CMD_IP}, []byte(c.RemoteAddr().String()))
+	addr, _, _ := net.SplitHostPort(c.RemoteAddr().String())
+	iErr := send(c, header{Command: CMD_IP}, []byte(addr))
 	if iErr != nil {
 		return iErr
 	}
@@ -15,8 +16,8 @@ func sender(quit chan bool, c net.Conn, r *received) error {
 		sErr := send(c,
 			header{
 				Count:   count,
-				Total:   r.total,
-				Elapsed: r.elms,
+				Total:   r.recv.total,
+				Elapsed: r.recv.elms,
 			},
 			randbytes(BLOCKSIZE-headerSize),
 		)

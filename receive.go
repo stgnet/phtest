@@ -16,15 +16,19 @@ func logSendErr(c net.Conn, err error) error {
 	return err
 }
 
+type stat struct {
+	total uint64
+	elms  uint64 // elapsed milliseconds
+	bps   uint64 // bytes per second
+}
+
 type received struct {
 	hdr   header
 	data  []byte
 	start time.Time
-	total uint64
-	elms  uint64 // elapsed milliseconds
-	bps   uint64 // bytes per second
-	secs  int    // elapsed seconds
-	last  int    // last elapsed seconds (tick trigger)
+	secs  int
+	recv  stat
+	send  stat
 }
 
 // bytes per second
@@ -87,7 +91,6 @@ func receive(c net.Conn, r *received) error {
 	if int(r.hdr.Size) < headerSize || int(r.hdr.Size) > BLOCKSIZE {
 		return logSendErr(c, errors.New("received message with invalid header size"))
 	}
-	// log.Infof("Received %+v", r.hdr)
 
 	dsize := int(r.hdr.Size) - headerSize
 	if dsize > 0 {
@@ -104,18 +107,20 @@ func receive(c net.Conn, r *received) error {
 	// update calculations
 	if r.hdr.Count == 0 {
 		// reset values -- first packet doesn't count
-		r.total = 0
 		r.start = time.Now()
-		r.last = 0
-		r.secs = 0
-		r.bps = 0
+		r.recv.total = 0
+		r.recv.elms = 0
+		r.recv.bps = 0
 	} else {
-		r.last = r.secs
 		r.secs = int(time.Now().Sub(r.start).Seconds())
 
-		r.total += uint64(r.hdr.Size)
-		r.elms = uint64(time.Now().Sub(r.start).Milliseconds())
-		r.bps = bps(r.total, r.elms)
+		r.recv.elms = uint64(time.Now().Sub(r.start).Milliseconds())
+		r.recv.total += uint64(r.hdr.Size)
+		r.recv.bps = bps(r.recv.total, r.recv.elms)
+
+		r.send.elms = r.hdr.Elapsed
+		r.send.total = r.hdr.Total
+		r.send.bps = bps(r.send.total, r.send.elms)
 	}
 	return nil
 }

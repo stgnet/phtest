@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/stgnet/pperf"
@@ -23,5 +24,10 @@ func main() {
 		Seconds:   *seconds,
 		Interface: *ifname,
 	})
-	fmt.Printf("Results: %+v", results)
+
+	pretty, err := json.MarshalIndent(results, "", "    ")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(pretty))
 }

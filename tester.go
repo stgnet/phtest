@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func service(c net.Conn) Results {
+func tester(c net.Conn) Results {
 	defer c.Close()
 	c.SetDeadline(time.Now().Add(10 * time.Second))
 
@@ -39,12 +39,19 @@ func service(c net.Conn) Results {
 	}
 	close(quit)
 	send(c, header{Command: CMD_End}, []byte{})
-	log.Printf("total=%v elms=%v bps=%v mpbs=%.2f", r.total, r.elms, r.bps, mbps(r.bps))
 	return Results{
-		Address:             remoteAddress,
-		TotalBytes:          r.total,
-		ElapsedMilliseconds: r.elms,
-		BytesPerSecond:      r.bps,
-		MbitsPerSecond:      mbps(r.bps),
+		Address: remoteAddress,
+		Upload: Stats{
+			TotalBytes:          r.send.total,
+			ElapsedMilliseconds: r.send.elms,
+			BytesPerSecond:      r.send.bps,
+			MbitsPerSecond:      mbps(r.send.bps),
+		},
+		Download: Stats{
+			TotalBytes:          r.recv.total,
+			ElapsedMilliseconds: r.recv.elms,
+			BytesPerSecond:      r.recv.bps,
+			MbitsPerSecond:      mbps(r.recv.bps),
+		},
 	}
 }

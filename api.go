@@ -14,13 +14,18 @@ type API struct {
 	Interface string // interface name to bind to (linux only)
 }
 
-type Results struct {
-	Address             string
+type Stats struct {
 	TotalBytes          uint64
 	ElapsedMilliseconds uint64
 	BytesPerSecond      uint64
 	MbitsPerSecond      float64
-	Err                 error
+}
+
+type Results struct {
+	Address  string
+	Download Stats
+	Upload   Stats
+	Err      error
 }
 
 func Pperf(api API) Results {
@@ -36,7 +41,7 @@ func Pperf(api API) Results {
 				log.Println(cErr)
 				continue
 			}
-			go service(c)
+			go tester(c)
 		}
 	}
 
@@ -44,5 +49,5 @@ func Pperf(api API) Results {
 	if dErr != nil {
 		return Results{Err: dErr}
 	}
-	return service(c)
+	return tester(c)
 }
