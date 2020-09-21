@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
+
 	"github.com/stgnet/pperf"
 )
 
@@ -17,16 +19,15 @@ func main() {
 
 	flag.Parse()
 
-	results := pperf.Pperf(pperf.API{
+	results, err := pperf.Run(pperf.API{
 		Server:    *server,
 		Target:    *target,
 		Port:      *port,
 		Seconds:   *seconds,
 		Interface: *ifname,
 	})
-	if results.Err != nil {
-		fmt.Println(results.Err.Error())
-		return
+	if err != nil {
+		log.Fatal(err.Error())
 	}
 
 	pretty, err := json.MarshalIndent(results, "", "    ")

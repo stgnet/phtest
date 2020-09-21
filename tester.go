@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func tester(c net.Conn, duration int) Results {
+func tester(c net.Conn, duration int) (*Results, error) {
 	defer c.Close()
 	c.SetDeadline(time.Now().Add(10 * time.Second))
 
@@ -23,14 +23,14 @@ func tester(c net.Conn, duration int) Results {
 	for r.secs < duration {
 		rErr := receive(c, &r)
 		if rErr != nil {
-			return Results{Err: rErr}
+			return nil, rErr
 		}
 
 		if r.hdr.Command == CMD_IP {
 			remoteAddress = string(r.data)
 		}
 		if r.hdr.Command == CMD_Err {
-			return Results{Err: fmt.Errorf("Remote error: %s", string(r.data))}
+			return nil, fmt.Errorf("Remote error: %s", string(r.data))
 		}
 		if r.hdr.Command == CMD_End || r.hdr.Command == CMD_Err {
 			break
@@ -38,7 +38,7 @@ func tester(c net.Conn, duration int) Results {
 	}
 	close(quit)
 	send(c, header{Command: CMD_End}, []byte{})
-	return Results{
+	return &Results{
 		Address: remoteAddress,
 		Upload: Stats{
 			TotalBytes:          r.send.total,
@@ -52,5 +52,5 @@ func tester(c net.Conn, duration int) Results {
 			BytesPerSecond:      r.recv.bps,
 			MbitsPerSecond:      mbps(r.recv.bps),
 		},
-	}
+	}, nil
 }
