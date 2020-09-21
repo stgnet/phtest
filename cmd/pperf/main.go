@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+
 	"github.com/stgnet/pperf"
 )
 
@@ -17,15 +18,15 @@ func main() {
 
 	flag.Parse()
 
-	results := pperf.Pperf(pperf.API{
+	results, err := pperf.Pperf(pperf.API{
 		Server:    *server,
 		Target:    *target,
 		Port:      *port,
 		Seconds:   *seconds,
 		Interface: *ifname,
 	})
-	if results.Err != nil {
-		fmt.Println(results.Err.Error())
+	if err != nil {
+		fmt.Println(err.Error())
 		return
 	}
 

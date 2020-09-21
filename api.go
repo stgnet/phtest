@@ -27,10 +27,9 @@ type Results struct {
 	Address  string
 	Download Stats
 	Upload   Stats
-	Err      error
 }
 
-func Pperf(api API) Results {
+func Pperf(api API) (*Results, error) {
 	if api.Server {
 		l, lErr := net.Listen("tcp", ":"+strconv.Itoa(api.Port))
 		if lErr != nil {
@@ -67,7 +66,8 @@ func Pperf(api API) Results {
 	}
 	c, dErr := dialer.Dial("tcp", api.Target+":"+strconv.Itoa(api.Port))
 	if dErr != nil {
-		return Results{Err: dErr}
+		return nil, dErr
 	}
-	return tester(c, api.Seconds)
+	result := tester(c, api.Seconds)
+	return &result, nil
 }
