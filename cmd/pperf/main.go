@@ -18,7 +18,7 @@ func main() {
 
 	flag.Parse()
 
-	results, err := pperf.Pperf(pperf.API{
+	results, err := pperf.Run(pperf.API{
 		Server:    *server,
 		Target:    *target,
 		Port:      *port,

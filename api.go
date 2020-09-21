@@ -29,7 +29,7 @@ type Results struct {
 	Upload   Stats
 }
 
-func Pperf(api API) (*Results, error) {
+func Run(api API) (*Results, error) {
 	if api.Server {
 		l, lErr := net.Listen("tcp", ":"+strconv.Itoa(api.Port))
 		if lErr != nil {
@@ -68,6 +68,10 @@ func Pperf(api API) (*Results, error) {
 	if dErr != nil {
 		return nil, dErr
 	}
-	result := tester(c, api.Seconds)
-	return &result, nil
+	result, err := tester(c, api.Seconds)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
