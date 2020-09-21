@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 
 	"github.com/stgnet/pperf"
 )
@@ -26,8 +27,7 @@ func main() {
 		Interface: *ifname,
 	})
 	if err != nil {
-		fmt.Println(err.Error())
-		return
+		log.Fatal(err.Error())
 	}
 
 	pretty, err := json.MarshalIndent(results, "", "    ")
