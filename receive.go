@@ -3,7 +3,6 @@ package pperf
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"net"
 	"time"
@@ -79,10 +78,10 @@ func receive(c net.Conn, r *received) error {
 		return sendErr(c, fmt.Errorf("convert header: %w: buf=%+v", hrErr, hbuf))
 	}
 	if r.hdr.Magic != MAGIC {
-		return sendErr(c, errors.New("received message with wrong magic code"))
+		return sendErr(c, fmt.Errorf("received message with wrong magic code: %04X", r.hdr.Magic))
 	}
 	if int(r.hdr.Size) < headerSize || int(r.hdr.Size) > BLOCKSIZE {
-		return sendErr(c, errors.New("received message with invalid header size"))
+		return sendErr(c, fmt.Errorf("received message with invalid header size: %d", r.hdr.Size))
 	}
 
 	dsize := int(r.hdr.Size) - headerSize
@@ -91,8 +90,9 @@ func receive(c net.Conn, r *received) error {
 		if dErr != nil {
 			return sendErr(c, fmt.Errorf("read data: %w", dErr))
 		}
-		if r.hdr.Crc != crc16(dbuf) {
-			return sendErr(c, errors.New("received wrong data crc"))
+		crc := crc16(dbuf)
+		if r.hdr.Crc != crc {
+			return sendErr(c, fmt.Errorf("Expected data crc %04X received %04X", r.hdr.Crc, crc))
 		}
 		r.data = dbuf
 	}

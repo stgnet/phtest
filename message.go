@@ -15,7 +15,7 @@ type header struct {
 }
 
 const (
-	MAGIC     = uint16(0x5050)
+	MAGIC     = uint16(0x5005)
 	CMD_Test  = 0 // regular test data
 	CMD_IP    = 1 // IP address:port string reported in data
 	CMD_Err   = 2 // error occurred, message follows
