@@ -1,8 +1,7 @@
 package pperf
 
-import (
-	"unsafe"
-)
+// const header size because unsafe.Sizeof() has different padding per platform
+const headerSize = 32
 
 type header struct {
 	Magic   uint16 // 2 magic bytes
@@ -12,6 +11,7 @@ type header struct {
 	Elapsed uint64 // 8 ms elapsed since first message received
 	Crc     uint16 // 2 crc of data bytes beyond header
 	Command uint8  // 1 command code or indicatation of data contents
+	Offset  uint8  // 1 offset from header to start of data portion
 }
 
 const (
@@ -22,10 +22,3 @@ const (
 	CMD_End   = 3 // close connection normally
 	BLOCKSIZE = 4096
 )
-
-var headerSize int
-
-func init() {
-	var hdr header
-	headerSize = int(unsafe.Sizeof(hdr))
-}

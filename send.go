@@ -11,6 +11,7 @@ import (
 func send(c net.Conn, h header, d []byte) error {
 	c.SetWriteDeadline(time.Now().Add(10 * time.Second))
 	h.Magic = MAGIC
+	h.Offset = uint8(headerSize)
 	h.Size = uint16(headerSize + len(d))
 	h.Crc = crc16(d)
 	buf := new(bytes.Buffer)

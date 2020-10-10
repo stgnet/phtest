@@ -69,7 +69,7 @@ func readex(c net.Conn, size int) ([]byte, error) {
 func receive(c net.Conn, r *received) error {
 	c.SetReadDeadline(time.Now().Add(10 * time.Second))
 
-	hbuf, rErr := readex(c, headerSize) //c.Read(hbuf)
+	hbuf, rErr := readex(c, headerSize)
 	if rErr != nil {
 		return sendErr(c, fmt.Errorf("read header: %w", rErr))
 	}
@@ -82,6 +82,9 @@ func receive(c net.Conn, r *received) error {
 	}
 	if int(r.hdr.Size) < headerSize || int(r.hdr.Size) > BLOCKSIZE {
 		return sendErr(c, fmt.Errorf("received message with invalid header size: %d", r.hdr.Size))
+	}
+	if int(r.hdr.Offset) != headerSize {
+		return sendErr(c, fmt.Errorf("received data offset %d expected %d", r.hdr.Offset, headerSize))
 	}
 
 	dsize := int(r.hdr.Size) - headerSize
