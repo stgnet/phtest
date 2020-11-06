@@ -30,6 +30,12 @@ type Results struct {
 }
 
 func Run(api API) (*Results, error) {
+	if api.Port == 0 {
+		api.Port = 5048
+	}
+	if api.Seconds == 0 {
+		api.Seconds = 15
+	}
 	if api.Server {
 		l, lErr := net.Listen("tcp", ":"+strconv.Itoa(api.Port))
 		if lErr != nil {
